@@ -41,45 +41,74 @@ class MyAppState extends ChangeNotifier {
     } else {
       favorites.add(current);
     }
-    print(favorites);
+    notifyListeners();
+  }
+
+  void deleteFavorite(item) {
+    if (favorites.contains(item)) {
+      favorites.remove(item);
+    }
     notifyListeners();
   }
 }
 
-class MyHomePage extends StatelessWidget {
+class MyHomePage extends StatefulWidget {
+  @override
+  State<MyHomePage> createState() => _MyHomePageState();
+}
+
+class _MyHomePageState extends State<MyHomePage> {
+  var selectedIndex = 0;
+
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      body: Row(
-        children: [
-          SafeArea(
-            child: NavigationRail(
-              extended: false,
-              destinations: [
-                NavigationRailDestination(
-                  icon: Icon(Icons.home),
-                  label: Text('Home'),
-                ),
-                NavigationRailDestination(
-                  icon: Icon(Icons.favorite),
-                  label: Text('Favorites'),
-                ),
-              ],
-              selectedIndex: 0,
-              onDestinationSelected: (value) {
-                print('selected: $value');
-              },
+    Widget page;
+    switch (selectedIndex) {
+      case 0:
+        page = GeneratorPage();
+        break;
+      case 1:
+        page = FavoritesPage();
+        break;
+      default:
+        throw UnimplementedError('no widget for $selectedIndex');
+    }
+
+    return LayoutBuilder(builder: (context, constraints) {
+      return Scaffold(
+        body: Row(
+          children: [
+            SafeArea(
+              child: NavigationRail(
+                extended: constraints.maxWidth >= 600,
+                destinations: [
+                  NavigationRailDestination(
+                    icon: Icon(Icons.home),
+                    label: Text('Home'),
+                  ),
+                  NavigationRailDestination(
+                    icon: Icon(Icons.favorite),
+                    label: Text('Favorites'),
+                  ),
+                ],
+                selectedIndex: selectedIndex,
+                onDestinationSelected: (value) {
+                  setState(() {
+                    selectedIndex = value;
+                  });
+                },
+              ),
             ),
-          ),
-          Expanded(
-            child: Container(
-              color: Theme.of(context).colorScheme.primaryContainer,
-              child: GeneratorPage(),
+            Expanded(
+              child: Container(
+                color: Theme.of(context).colorScheme.primaryContainer,
+                child: page,
+              ),
             ),
-          ),
-        ],
-      ),
-    );
+          ],
+        ),
+      );
+    });
   }
 }
 
@@ -124,6 +153,50 @@ class GeneratorPage extends StatelessWidget {
         ],
       ),
     );
+  }
+}
+
+class FavoritesPage extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    var appState = context.watch<MyAppState>();
+    var favoritesArr = appState.favorites;
+
+    if (favoritesArr.isEmpty) {
+      return Center(
+        child: Text('No favorites yet.'),
+      );
+    }
+
+    return Column(children: [
+      Padding(
+        padding: const EdgeInsets.all(20),
+        child: Text('You have '
+            '${favoritesArr.length} favorites:'),
+      ),
+      for (var item in favoritesArr)
+        Container(
+          padding: const EdgeInsets.all(5),
+          margin: EdgeInsets.all(5),
+          decoration: BoxDecoration(
+              color: Colors.purpleAccent,
+              borderRadius: BorderRadius.all(Radius.circular(20))),
+          child: ListTile(
+              leading: Icon(Icons.favorite),
+              title: Text(
+                item.asLowerCase,
+                style:
+                    TextStyle(color: Theme.of(context).colorScheme.onPrimary),
+              ),
+              trailing: IconButton(
+                icon: Icon(Icons.delete),
+                onPressed: () {
+                  // Call your method to handle the delete action here
+                  appState.deleteFavorite(item);
+                },
+              )),
+        ),
+    ]);
   }
 }
 
